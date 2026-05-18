@@ -53,6 +53,15 @@ const units = [
   },
 ];
 
+function calculateNights(checkIn, checkOut) {
+  const startDate = new Date(checkIn);
+  const endDate = new Date(checkOut);
+  const millisecondsPerNight = 1000 * 60 * 60 * 24;
+  const nights = Math.ceil((endDate - startDate) / millisecondsPerNight);
+
+  return nights;
+}
+
 app.get("/", (req, res) => {
   res.json({
     app: "Sama Salalah API",
@@ -92,23 +101,53 @@ app.post("/bookings", (req, res) => {
     });
   }
 
-  const checkInDate = new Date(checkIn);
-  const month = checkInDate.getMonth() + 1;
+  const unit = units.find((item) => item.id === Number(unitId));
 
+  if (!unit) {
+    return res.status(404).json({
+      message: "Unit not found",
+    });
+  }
+
+  const checkInDate = new Date(checkIn);
+  const checkOutDate = new Date(checkOut);
+
+  if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
+    return res.status(400).json({
+      message: "Invalid check-in or check-out date",
+    });
+  }
+
+  const nights = calculateNights(checkIn, checkOut);
+
+  if (nights <= 0) {
+    return res.status(400).json({
+      message: "Check-out date must be after check-in date",
+    });
+  }
+
+  const month = checkInDate.getMonth() + 1;
   const isKhareefRestricted = month === 7 || month === 8;
+  const pricePerNight = unit.dailyPrice;
+  const totalPrice = nights * pricePerNight;
 
   res.status(201).json({
     message: "Booking created successfully",
     booking: {
       id: Date.now(),
-      unitId,
+      unitId: unit.id,
+      unitTitle: unit.title,
       customerName,
       phone,
       checkIn,
       checkOut,
+      nights,
+      pricePerNight,
+      totalPrice,
+      currency: "OMR",
       canCustomerCancel: !isKhareefRestricted,
       canCustomerExtend: !isKhareefRestricted,
-      whatsappMessage: `مرحباً ${customerName}، تم استلام حجزك في سما صلالة من ${checkIn} إلى ${checkOut}.`,
+      whatsappMessage: `مرحباً ${customerName}، تم استلام حجزك في سما صلالة من ${checkIn} إلى ${checkOut}. عدد الليالي: ${nights}. الإجمالي: ${totalPrice} ريال عماني.`,
     },
   });
 });
