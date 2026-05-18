@@ -1,14 +1,21 @@
-$ScriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectPath = $PSScriptRoot
 
-Write-Host "Starting Sama Salalah in separate PowerShell windows..." -ForegroundColor Green
-Write-Host "Project path: $ScriptPath" -ForegroundColor Cyan
+if (-not $ProjectPath) {
+  $ProjectPath = Split-Path -Parent $MyInvocation.MyCommand.Path
+}
 
-Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "cd '$ScriptPath'; npm run dev:api"
-Start-Process powershell -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", "cd '$ScriptPath'; npm run dev:web"
+Write-Host "Starting Sama Salalah..." -ForegroundColor Green
+Write-Host "Project path: $ProjectPath" -ForegroundColor Cyan
 
-Start-Sleep -Seconds 3
+$ApiCommand = "Set-Location -LiteralPath `"$ProjectPath`"; npm run dev:api"
+$WebCommand = "Set-Location -LiteralPath `"$ProjectPath`"; npm run dev:web"
+
+Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $ApiCommand)
+Start-Process -FilePath "powershell.exe" -ArgumentList @("-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $WebCommand)
+
+Start-Sleep -Seconds 5
 Start-Process "http://localhost:3000"
 Start-Process "http://localhost:4000"
 
-Write-Host "API and Web started in separate windows." -ForegroundColor Green
-Write-Host "You can continue typing in this PowerShell window." -ForegroundColor Yellow
+Write-Host "Done. API and Web opened in separate windows." -ForegroundColor Green
+Write-Host "This window is still ready for commands." -ForegroundColor Yellow
